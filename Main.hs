@@ -17,15 +17,42 @@ readGrid s
 
 showGrid :: Grid -> String
 showGrid = unlines . map(unwords . map showCell)
-	where
-	  showCell(Fixed x) = show x
-	  showCell _ = "."
+  where
+    showCell(Fixed x) = show x
 
+    showCell _ = "."
 showGridWithPossibilities :: Grid -> String
 showGridWithPossibilities = unlines . map (unwords . map showCell)
-	where
-	  showCell (Fixed x) = show x ++ "             "
-	  showCell (Possible xs) = 
-	  	(++ "]")
-		. Data.List.foldl' (\acc x -> acc ++ if x `elem` xs then show x else " ") "["
-		$[1..9]
+  where
+    showCell (Fixed x) = show x ++ "             "
+    showCell (Possible xs) = (++ "]") . Data.List.foldl' (\acc x -> acc ++ if x `elem` xs then show x else " ") "[" $ [1..9]
+
+pruneCell :: [Cell] -> Maybe [Cell]
+pruneCell cells = traverse pruneCell cells
+  where
+    fixeds = [x | Fixed x <- cells]
+
+    pruneCell (Possible xs) = case xs Data.List.\\ fixeds of
+      []  -> Nothing
+      [y] -> Just $ Fixed y
+      ys  -> Just $ Possible ys
+
+    pruneCell x = Just x
+
+subGridsToRows :: Grid -> Grid
+subGridsToRows = 
+  concatMap (\rows -> let [r1, r2, r3] = map (Data.List.Split.chunksOf 3) rows
+  		      in zipWith3 (\a b c -> a ++ b ++ c) r1 r2 r3)
+
+  .Data.List.Split.chunksOf 3
+
+pruneGrid' :: Grid -> Maybe Grid
+pruneGrid' grid =
+  traverse pruneCell grid
+  >>= fmap Data.List.transpose . traverse pruneCell . Data.List.transpose
+  >>= fmap subGridsToRows . traverse pruneCell . subGridsToRows
+
+pruneGrid :: Grid -> Maybe Grid
+pruneGrid = fixM pruneGrid'
+  where
+    fixM f x = f x >>= \x' -> if x' == x then return x else fixM f x'
