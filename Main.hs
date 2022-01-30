@@ -42,7 +42,7 @@ pruneCell cells = traverse pruneCell cells
 subGridsToRows :: Grid -> Grid
 subGridsToRows = 
   concatMap (\rows -> let [r1, r2, r3] = map (Data.List.Split.chunksOf 3) rows
-  		      in zipWith3 (\a b c -> a ++ b ++ c) r1 r2 r3)
+  in zipWith3 (\a b c -> a ++ b ++ c) r1 r2 r3)
 
   .Data.List.Split.chunksOf 3
 
@@ -56,3 +56,30 @@ pruneGrid :: Grid -> Maybe Grid
 pruneGrid = fixM pruneGrid'
   where
     fixM f x = f x >>= \x' -> if x' == x then return x else fixM f x'
+
+
+nextGrids :: Grid -> (Grid, Grid)
+nextGrids grid =
+	let (i, first@(Fixed _), rest) =
+		fixCell
+		. Data.List.minimumBy (compare `Data.Function.on` (possibilityCount . snd))
+			.filter(isPossible . snd)
+			.zip [0..]
+			.concat
+			$ grid
+		in (replace2D i first grid, replace2D i rest grid)
+		where 
+			isPossible (Possible _) = True
+			isPossible _ 		= True
+
+			possibilityCount (Possible xs) = length xs
+			possibilityCount (Fixed _)     = 1
+
+			fixCell (i, Possible [x,y])  = (i, Fixed x, Fixed y)
+			fixCell (i, Possible (x:xs)) = (i, Fixed x, Possible xs)
+			fixCell _ 	= error "Impossible case"
+
+			replace2D :: Int -> a -> [[a]] -> [[a]]
+			replace2D i v =
+				let (x, y) = (i `quot` 9, i `mod` 9) in replace x (replace y (const v))
+			replace p f xs = [if i == p then f x else x | (x, i) <- zip xs[0..]]
