@@ -1,4 +1,5 @@
 import Data.Char
+import Data.Function
 import Data.List
 import Data.List.Split
 
@@ -60,13 +61,13 @@ pruneGrid = fixM pruneGrid'
 
 nextGrids :: Grid -> (Grid, Grid)
 nextGrids grid =
-	let (i, first@(Fixed _), rest) =
-		fixCell
-		. Data.List.minimumBy (compare `Data.Function.on` (possibilityCount . snd))
-			.filter(isPossible . snd)
-			.zip [0..]
-			.concat
-			$ grid
+  let (i, first@(Fixed _), rest) =
+   	fixCell
+	. Data.List.minimumBy (compare `Data.Function.on` (possibilityCount . snd))
+		.filter(isPossible . snd)
+		.zip [0..]
+		.concat
+		$ grid
 		in (replace2D i first grid, replace2D i rest grid)
 		where 
 			isPossible (Possible _) = True
@@ -83,3 +84,34 @@ nextGrids grid =
 			replace2D i v =
 				let (x, y) = (i `quot` 9, i `mod` 9) in replace x (replace y (const v))
 			replace p f xs = [if i == p then f x else x | (x, i) <- zip xs[0..]]
+
+isGridFilled :: Grid -> Bool
+isGridFilled grid = null [ () | Possible _ <- concat grid ]
+
+isGridInvalid :: Grid -> Bool
+isGridInvalid grid =
+  any isInvalidRow grid
+  || any isInvalidRow (Data.List.transpose grid)
+  || any isInvalidRow (subGridsToRows grid)
+  where 
+    isInvalidRow row =
+      let fixeds 	 = [x | Fixed x <- row]
+          emptyPossibles = [x | Possible x <- row, null, x]
+      in hasDups fixeds || not (null emptyPossibles)
+
+      hasDups l = hasDups' l []
+
+      hasDups' [] _ = False
+      hasDups' (y:ys) xs
+        | y `elem` xs = True
+	| otherwise   = hasDups' ys (y:xs)
+
+solve :: Grid -> Maybe Grid
+solve grdi = pruneGrid grid >>= solve'
+  where
+    solve' g
+      | isGridInvalid g = Nothing
+      | isGridFilled g  = Just g
+      | otherwise	=
+      	  let (grid1, grid2) = nextGrids g
+	  in solve grid1 <|> solve grid2
