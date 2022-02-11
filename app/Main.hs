@@ -85,6 +85,7 @@ nextGrids grid =
 				let (x, y) = (i `quot` 9, i `mod` 9) in replace x (replace y (const v))
 			replace p f xs = [if i == p then f x else x | (x, i) <- zip xs[0..]]
 
+
 isGridFilled :: Grid -> Bool
 isGridFilled grid = null [ () | Possible _ <- concat grid ]
 
@@ -93,25 +94,25 @@ isGridInvalid grid =
   any isInvalidRow grid
   || any isInvalidRow (Data.List.transpose grid)
   || any isInvalidRow (subGridsToRows grid)
-  where 
+  where
     isInvalidRow row =
-      let fixeds 	 = [x | Fixed x <- row]
-          emptyPossibles = [x | Possible x <- row, null, x]
+      let fixeds         = [x | Fixed x <- row]
+          emptyPossibles = [x | Possible x <- row, null x]
       in hasDups fixeds || not (null emptyPossibles)
 
-      hasDups l = hasDups' l []
+    hasDups l = hasDups' l []
 
-      hasDups' [] _ = False
-      hasDups' (y:ys) xs
-        | y `elem` xs = True
-	| otherwise   = hasDups' ys (y:xs)
+    hasDups' [] _ = False
+    hasDups' (y:ys) xs
+      | y `elem` xs = True
+      | otherwise   = hasDups' ys (y:xs)
 
 solve :: Grid -> Maybe Grid
-solve grdi = pruneGrid grid >>= solve'
+solve grid = pruneGrid grid >>= solve'
   where
     solve' g
       | isGridInvalid g = Nothing
       | isGridFilled g  = Just g
-      | otherwise	=
-      	  let (grid1, grid2) = nextGrids g
-	  in solve grid1 <|> solve grid2
+      | otherwise       =
+          let (grid1, grid2) = nextGrids g
+          in solve grid1 <|> solve grid2
