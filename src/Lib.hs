@@ -3,6 +3,7 @@ module Lib
   )
 where
 
+import qualified Control.Monad
 import qualified Data.Char
 import Data.Foldable (Foldable (length), concatMap)
 import Data.Function
@@ -11,6 +12,7 @@ import qualified Data.List
 import qualified Data.List.Split
 import Data.Maybe
 import Data.Traversable (Traversable (traverse))
+import Prelude (getContents, putStr, putStrLn)
 
 data Cell = Fixed Int | Possible [Int] deriving (Show, Eq)
 
@@ -129,7 +131,14 @@ solve grid = pruneGrid grid >>= solve'
       | isGridFilled g = Just g
       | otherwise =
         let (grid1, grid2) = nextGrids g
-         in solve grid1 <|> solve grid2
+         in solve grid1 <> solve grid2
 
 someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+someFunc = do
+  inputs <= lines <$> getContents
+  Control.Monad.forM_ inputs $ \input ->
+    case readGrid input of
+      Nothing -> putStr "Invalid input"
+      Just grid -> case solve grid of
+        Nothing -> putStrLn "No solution found"
+        Just grind' -> putStrLn $ showGrid grid'
